@@ -50,6 +50,40 @@ def dead_animation():
         player_dead_index = len(player_dead) - 1
         player = player_dead[int(player_dead_index)]  # Ensure player surface stays on last frame
 
+def draw_scrolling_background():
+    global bg_x1, bg_x2
+
+    # Move both background images to the left
+    bg_x1 -= bg_scroll_speed
+    bg_x2 -= bg_scroll_speed
+
+    # If a background image moves completely off the screen, reset it to the right
+    if bg_x1 <= -settings.SCREEN_WIDTH:
+        bg_x1 = settings.SCREEN_WIDTH
+    if bg_x2 <= -settings.SCREEN_WIDTH:
+        bg_x2 = settings.SCREEN_WIDTH
+
+    # Draw the two background images
+    screen.blit(background, (bg_x1, 0))
+    screen.blit(background, (bg_x2, 0))
+
+def draw_scrolling_floor():
+    global floor_x1, floor_x2
+
+    # Move both floor images to the left
+    floor_x1 -= floor_scroll_speed
+    floor_x2 -= floor_scroll_speed
+
+    # If a floor image moves completely off the screen, reset it to the right
+    if floor_x1 <= -settings.SCREEN_WIDTH:
+        floor_x1 = settings.SCREEN_WIDTH
+    if floor_x2 <= -settings.SCREEN_WIDTH:
+        floor_x2 = settings.SCREEN_WIDTH
+
+    # Draw the two floor images
+    screen.blit(floor, (floor_x1, settings.SCREEN_HEIGHT - 100))  # Adjust Y position to place it at the bottom
+    screen.blit(floor, (floor_x2, settings.SCREEN_HEIGHT - 100))
+
 # Variables (static)
 clock = pygame.time.Clock()
 title_y_pos = -50
@@ -64,9 +98,21 @@ pygame.display.set_caption("My First Pygame Window")
 background = pygame.image.load('assets/prehistoric_background.jpg').convert()
 background = pygame.transform.scale(background, (settings.SCREEN_WIDTH, 500))
 
+# Initialize positions for the scrolling background
+bg_x1 = 0  # First background image
+bg_x2 = settings.SCREEN_WIDTH  # Second background image starts after the first
+
+bg_scroll_speed = 1  # Background scroll speed (slower for depth effect)
+
 # Floor image scaled
 floor = pygame.image.load('assets/floor.jpg').convert()
 floor = pygame.transform.scale(floor, (settings.SCREEN_WIDTH, 100))
+
+# Initialize positions for the scrolling floor
+floor_x1 = 0  # First floor image
+floor_x2 = settings.SCREEN_WIDTH  # Second floor image starts after the first
+
+floor_scroll_speed = 3  # Floor scroll speed (faster to simulate closer perspective)
 
 # Game font and game name
 game_font = pygame.font.Font('assets/prehistoric_bones.otf', 80)
@@ -200,11 +246,15 @@ while running:
                 player_gravity = -18
 
     # Update the screen (background and floor)
-    screen.blit(background, (0, 0))  # Redraw the background
-    screen.blit(floor, (0, 500))
+    draw_scrolling_background()
+    draw_scrolling_floor()
     screen.blit(game_name, (265, title_y_pos))
 
     if game_active:
+        # Move the stone
+        stone_rect.x -= 8
+        if stone_rect.x <= -100:
+            stone_rect.x = 900  # Reset stone position when it goes off-screen
         # Draw the stone
         screen.blit(stone_surf, stone_rect)
 
@@ -220,11 +270,6 @@ while running:
 
             # Score
             display_score()
-
-            # Move the stone
-            stone_rect.x -= 8
-            if stone_rect.x <= -100:
-                stone_rect.x = 900  # Reset stone position when it goes off-screen
 
             player_animation()
             screen.blit(player, player_rect)
@@ -269,6 +314,12 @@ while running:
                 player_rect.y = 500  # Reset player position
                 player_gravity = 0  # Reset gravity
                 is_dead = False # Reset is_dead boolean
+                # Reset background positions
+                bg_x1 = 0
+                bg_x2 = settings.SCREEN_WIDTH
+                # Reset floor positions
+                floor_x1 = 0
+                floor_x2 = settings.SCREEN_WIDTH
                 start_time = pygame.time.get_ticks()
                 pygame.time.delay(120)  # Optional delay for responsiveness
 
