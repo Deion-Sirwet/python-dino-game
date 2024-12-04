@@ -13,10 +13,10 @@ def display_score():
     screen.blit(score_surf, score_rect)
 
 def player_animation():
-    global player_surf, player_jump_index, player_run_index, player_gravity
+    global player, player_jump_index, player_run_index, player_gravity
 
     # Check if player is in the air
-    if player_pos.y < 385:  # Player is airborne
+    if player_rect.y < 385:  # Player is airborne
         # Reset jump animation index for a new jump
         if player_gravity < 0 and player_jump_index >= len(player_jump) - 1:
             player_jump_index = 0  # Start jump animation from the beginning
@@ -26,7 +26,7 @@ def player_animation():
         if player_jump_index >= len(player_jump):  # Clamp index to avoid overshooting
             player_jump_index = len(player_jump) - 1  # Stay on the last jump frame
         
-        player_surf = player_jump[int(player_jump_index)]
+        player = player_jump[int(player_jump_index)]
     else:  # Player is on the ground
         # Reset jump animation index when landing
         player_jump_index = 0
@@ -36,7 +36,19 @@ def player_animation():
         if player_run_index >= len(player_run):  # Loop the walk animation
             player_run_index = 0
         
-        player_surf = player_run[int(player_run_index)]
+        player = player_run[int(player_run_index)]
+
+def dead_animation():
+    global player_dead_index, player
+
+    # Progress through the death animation frames
+    if player_dead_index < len(player_dead):
+        player = player_dead[int(player_dead_index)]  # Set player surface to death frame
+        player_dead_index += 0.22  # Adjust speed
+    else:
+        # Stay on the last frame after animation finishes
+        player_dead_index = len(player_dead) - 1
+        player = player_dead[int(player_dead_index)]  # Ensure player surface stays on last frame
 
 # Variables (static)
 clock = pygame.time.Clock()
@@ -81,9 +93,23 @@ exit_rect = exit_but.get_rect(topleft = (690, 10))
 exit_but_press = pygame.image.load('assets/buttons/ExitClick.png')
 exit_but_press = pygame.transform.scale(exit_but_press, (100, 50))
 
-# Player and Stone setup
+# Player
 player = pygame.image.load('assets/sprites/dino/Idle (1).png').convert_alpha()
 player = pygame.transform.scale(player, (200, 130))
+player_rect = player.get_rect()
+player_mask = pygame.mask.from_surface(player)
+mask_image = player_mask.to_surface()
+
+# Position the player
+player_rect.topleft = (300, 385)
+
+# Stone setup
+stone_surf = pygame.image.load('assets/stone.png').convert_alpha()
+stone_rect = stone_surf.get_rect()
+stone_mask = pygame.mask.from_surface(stone_surf)
+
+# Position the stone
+stone_rect.topleft = (700, 445)
 
 # Player animation photos (properly scale each sprite individually)
 player_run_1 = pygame.image.load('assets/sprites/dino/Run (1).png').convert_alpha()
@@ -137,30 +163,32 @@ player_jump_index = 0
 # Combine all jump animations into a list
 player_jump = [player_jump_1, player_jump_2, player_jump_3, player_jump_4, player_jump_5, player_jump_6, player_jump_7, player_jump_8, player_jump_9, player_jump_10, player_jump_11, player_jump_12]
 
-# Stone setup
-stone_surf = pygame.image.load('assets/stone.png').convert_alpha()
+# Player dead animation frames (scaled independently)
+player_dead_1 = pygame.image.load('assets/sprites/dino/Dead (1).png').convert_alpha()
+player_dead_1 = pygame.transform.scale(player_dead_1, (200, 130))
+player_dead_2 = pygame.image.load('assets/sprites/dino/Dead (2).png').convert_alpha()
+player_dead_2 = pygame.transform.scale(player_dead_2, (200, 130))
+player_dead_3 = pygame.image.load('assets/sprites/dino/Dead (3).png').convert_alpha()
+player_dead_3 = pygame.transform.scale(player_dead_3, (200, 130))
+player_dead_4 = pygame.image.load('assets/sprites/dino/Dead (4).png').convert_alpha()
+player_dead_4 = pygame.transform.scale(player_dead_4, (200, 130))
+player_dead_5 = pygame.image.load('assets/sprites/dino/Dead (5).png').convert_alpha()
+player_dead_5 = pygame.transform.scale(player_dead_5, (200, 130))
+player_dead_6 = pygame.image.load('assets/sprites/dino/Dead (6).png').convert_alpha()
+player_dead_6 = pygame.transform.scale(player_dead_6, (200, 130))
+player_dead_7 = pygame.image.load('assets/sprites/dino/Dead (7).png').convert_alpha()
+player_dead_7 = pygame.transform.scale(player_dead_7, (200, 130))
+player_dead_8 = pygame.image.load('assets/sprites/dino/Dead (8).png').convert_alpha()
+player_dead_8 = pygame.transform.scale(player_dead_8, (200, 130))
+player_dead_index = 0
 
-# Create masks for the player's and stone's ellipses directly
-# Player's ellipse
-player_width, player_height = player.get_size()
-player_width *= .5
-ellipse_surface_player = pygame.Surface((player_width, player_height), pygame.SRCALPHA)
-pygame.draw.ellipse(ellipse_surface_player, (255, 255, 255), (0, 0, player_width, player_height))
-ellipse_mask_player = pygame.mask.from_surface(ellipse_surface_player)
-
-# Stone's ellipse
-stone_width, stone_height = stone_surf.get_size()
-ellipse_surface_stone = pygame.Surface((stone_width, stone_height), pygame.SRCALPHA)
-pygame.draw.ellipse(ellipse_surface_stone, (255, 255, 255), (0, 0, stone_width, stone_height))
-ellipse_mask_stone = pygame.mask.from_surface(ellipse_surface_stone)
-
-# Positions of the player and stone (directly used without rect)
-player_pos = pygame.Vector2(300, 385)  # Player position (center)
-stone_pos = pygame.Vector2(700, 441)  # Stone position (center)
+# Combine all dead animations into a list
+player_dead = [player_dead_1, player_dead_2, player_dead_3, player_dead_4, player_dead_5, player_dead_6, player_dead_7, player_dead_8]
 
 # Main game loop
 running = True
 game_active = False
+is_dead = False
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -168,7 +196,7 @@ while running:
             pygame.quit()
 
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE and player_pos.y >= 385:
+            if event.key == pygame.K_SPACE and player_rect.y >= 385:
                 player_gravity = -18
 
     # Update the screen (background and floor)
@@ -177,43 +205,46 @@ while running:
     screen.blit(game_name, (265, title_y_pos))
 
     if game_active:
-        # Variables (dynamic)
-        mouse_pos = pygame.mouse.get_pos()
-
-        # Score
-        display_score()
-
-        # Move the stone
-        stone_pos.x -= 8
-        if stone_pos.x <= -100:
-            stone_pos.x = 900  # Reset stone position when it goes off-screen
-
         # Draw the stone
-        screen.blit(stone_surf, stone_pos)
-
-        # Draw the stone's collision ellipse (for visualization)
-        pygame.draw.ellipse(screen, (255, 0, 0), (stone_pos.x, stone_pos.y, stone_width, stone_height), 2)
-
-
-        # Draw the player's collision ellipse (for visualization)
-        pygame.draw.ellipse(screen, (0, 255, 0), (player_pos.x, player_pos.y, player_width, player_height), 2)
+        screen.blit(stone_surf, stone_rect)
 
         # Player movement (gravity)
         player_gravity += 1
-        player_pos.y += player_gravity
-        if player_pos.y >= 385:
-            player_pos.y = 385
-        player_animation()
-        screen.blit(player_surf, player_pos)
+        player_rect.y += player_gravity
+        if player_rect.y >= 385:
+            player_rect.y = 385
 
-        # Check for collision using ellipse masks (overlap)
-        offset = (stone_pos.x - player_pos.x, stone_pos.y - player_pos.y)
-        if ellipse_mask_player.overlap(ellipse_mask_stone, offset):
-            screen.blit(game_over_msg, (265, 200))
-            game_active = False
-            pygame.display.flip()
-            pygame.time.delay(1500)
-    
+        if not is_dead:
+            # Variables (dynamic)
+            mouse_pos = pygame.mouse.get_pos()
+
+            # Score
+            display_score()
+
+            # Move the stone
+            stone_rect.x -= 8
+            if stone_rect.x <= -100:
+                stone_rect.x = 900  # Reset stone position when it goes off-screen
+
+            player_animation()
+            screen.blit(player, player_rect)
+
+            # Check for collision using ellipse masks (overlap)
+            if player_mask.overlap(stone_mask, (stone_rect.x - player_rect.x, stone_rect.y - player_rect.y)):
+                is_dead = True
+                player_dead_index = 0
+
+        else:
+            dead_animation()  # Update the death animation frame
+            screen.blit(player, player_rect)  # Draw the current frame of the death animation
+            screen.blit(game_over_msg, (265, 200))  # Display the "Game Over" message
+
+            # Check if the animation has finished
+            if int(player_dead_index) >= len(player_dead):
+                # After the animation ends, stop the game or reset
+                pygame.display.flip()
+                pygame.time.delay(1500)  # Optional delay after animation
+                game_active = False
     else:
         # Variables (dynamic)
         mouse_pos = pygame.mouse.get_pos()
@@ -221,8 +252,8 @@ while running:
         # Screen layers
         screen.blit(background, (0, 0))
         screen.blit(floor, (0, 500))
-        screen.blit(stone_surf, stone_pos)
-        screen.blit(player, player_pos)
+        screen.blit(stone_surf, stone_rect)
+        screen.blit(player, player_rect)
 
         # Game title
         if title_y_pos < title_y_max:
@@ -234,9 +265,10 @@ while running:
             if pygame.mouse.get_pressed()[0]:  # Check if mouse is clicked
                 game_active = True  # Start the game
                 # Optionally, reset any game variables here (like stone position)
-                stone_pos.x = 700  # Reset stone position
-                player_pos.y = 500  # Reset player position
+                stone_rect.x = 700  # Reset stone position
+                player_rect.y = 500  # Reset player position
                 player_gravity = 0  # Reset gravity
+                is_dead = False # Reset is_dead boolean
                 start_time = pygame.time.get_ticks()
                 pygame.time.delay(120)  # Optional delay for responsiveness
 
