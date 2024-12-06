@@ -1,6 +1,6 @@
 import pygame
 import settings
-import sprites
+import random
 
 pygame.init()
 
@@ -89,6 +89,7 @@ clock = pygame.time.Clock()
 title_y_pos = -50
 title_y_max = 50
 start_time = 0
+high_score = 0
 
 # Set up the game window
 screen = pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
@@ -112,7 +113,7 @@ floor = pygame.transform.scale(floor, (settings.SCREEN_WIDTH, 100))
 floor_x1 = 0  # First floor image
 floor_x2 = settings.SCREEN_WIDTH  # Second floor image starts after the first
 
-floor_scroll_speed = 3  # Floor scroll speed (faster to simulate closer perspective)
+floor_scroll_speed = 8  # Floor scroll speed (faster to simulate closer perspective)
 
 # Game font and game name
 game_font = pygame.font.Font('assets/prehistoric_bones.otf', 80)
@@ -124,6 +125,9 @@ exit_msg = exit_font.render('Thanks for playing!', False, 'Black')
 
 # Game over message
 game_over_msg = exit_font.render('Game Over', False, 'Black')
+
+# High score font
+hs_font = pygame.font.Font('assets/prehistoric_bones.otf', 30)
 
 # Play buttons
 play_but = pygame.image.load('assets/buttons/PlayBtn.png')
@@ -148,14 +152,6 @@ mask_image = player_mask.to_surface()
 
 # Position the player
 player_rect.topleft = (300, 385)
-
-# Stone setup
-stone_surf = pygame.image.load('assets/stone.png').convert_alpha()
-stone_rect = stone_surf.get_rect()
-stone_mask = pygame.mask.from_surface(stone_surf)
-
-# Position the stone
-stone_rect.topleft = (700, 445)
 
 # Player animation photos (properly scale each sprite individually)
 player_run_1 = pygame.image.load('assets/sprites/dino/Run (1).png').convert_alpha()
@@ -231,6 +227,21 @@ player_dead_index = 0
 # Combine all dead animations into a list
 player_dead = [player_dead_1, player_dead_2, player_dead_3, player_dead_4, player_dead_5, player_dead_6, player_dead_7, player_dead_8]
 
+# Stone setup (obstacle)
+stone_surf = pygame.image.load('assets/stone.png').convert_alpha()
+stone_rect = stone_surf.get_rect()
+stone_mask = pygame.mask.from_surface(stone_surf)
+
+obstacle_list = []
+min_obstacle_distance = 200  # Adjust this value to control spacing
+
+# Position the stone
+stone_rect.topleft = (700, 445)
+
+# Obstacle timer
+obstacle_timer = pygame.USEREVENT + 1
+pygame.time.set_timer(obstacle_timer, random.randint(900, 1100))
+
 # Main game loop
 running = True
 game_active = False
@@ -240,10 +251,22 @@ while running:
         if event.type == pygame.QUIT:
             running = False
             pygame.quit()
+        if game_active:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and player_rect.y >= 385:
+                    player_gravity = -18
 
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_SPACE and player_rect.y >= 385:
-                player_gravity = -18
+            # Obstacle logic
+            if event.type == obstacle_timer:
+                # Create a new obstacle and its mask
+                new_stone_rect = stone_surf.get_rect(midtop=(random.randint(800, 1200), 445))
+                new_stone_mask = pygame.mask.from_surface(stone_surf)
+                
+                # Ensure new obstacle is spaced properly
+                if not obstacle_list or new_stone_rect.x - obstacle_list[-1]['rect'].x > min_obstacle_distance:
+                    # Append a tuple of the rect and mask to the obstacle list
+                    obstacle_list.append({'rect': new_stone_rect, 'mask': new_stone_mask})
+
 
     # Update the screen (background and floor)
     draw_scrolling_background()
@@ -252,11 +275,15 @@ while running:
 
     if game_active:
         # Move the stone
-        stone_rect.x -= 8
-        if stone_rect.x <= -100:
-            stone_rect.x = 900  # Reset stone position when it goes off-screen
-        # Draw the stone
-        screen.blit(stone_surf, stone_rect)
+        # Update obstacle positions
+        for obstacle in obstacle_list[:]:  # Use a copy of the list for safe iteration
+            obstacle['rect'].x -= 8  # Move obstacles to the left
+            if obstacle['rect'].right < 0:  # Remove off-screen obstacles
+                obstacle_list.remove(obstacle)
+        
+        # Draw obstacles
+        for obstacle in obstacle_list:
+            screen.blit(stone_surf, obstacle['rect'])
 
         # Player movement (gravity)
         player_gravity += 1
@@ -274,15 +301,18 @@ while running:
             player_animation()
             screen.blit(player, player_rect)
 
-            # Check for collision using ellipse masks (overlap)
-            if player_mask.overlap(stone_mask, (stone_rect.x - player_rect.x, stone_rect.y - player_rect.y)):
-                is_dead = True
-                player_dead_index = 0
+            # Check for collisions
+            for obstacle in obstacle_list:
+                offset = (obstacle['rect'].x - player_rect.x, obstacle['rect'].y - player_rect.y)
+                if player_mask.overlap(obstacle['mask'], offset):
+                    is_dead = True
+                    player_dead_index = 0
 
         else:
             dead_animation()  # Update the death animation frame
             screen.blit(player, player_rect)  # Draw the current frame of the death animation
             screen.blit(game_over_msg, (265, 200))  # Display the "Game Over" message
+            display_score()
 
             # Check if the animation has finished
             if int(player_dead_index) >= len(player_dead):
@@ -290,6 +320,7 @@ while running:
                 pygame.display.flip()
                 pygame.time.delay(1500)  # Optional delay after animation
                 game_active = False
+
     else:
         # Variables (dynamic)
         mouse_pos = pygame.mouse.get_pos()
@@ -297,7 +328,6 @@ while running:
         # Screen layers
         screen.blit(background, (0, 0))
         screen.blit(floor, (0, 500))
-        screen.blit(stone_surf, stone_rect)
         screen.blit(player, player_rect)
 
         # Game title
@@ -320,6 +350,8 @@ while running:
                 # Reset floor positions
                 floor_x1 = 0
                 floor_x2 = settings.SCREEN_WIDTH
+                # Reset obstacle list
+                obstacle_list = []
                 start_time = pygame.time.get_ticks()
                 pygame.time.delay(120)  # Optional delay for responsiveness
 
