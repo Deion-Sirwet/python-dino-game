@@ -12,6 +12,13 @@ def display_score():
     score_rect = score_surf.get_rect(center = (400, 170))
     screen.blit(score_surf, score_rect)
 
+    # High score font
+    hs_font = pygame.font.Font('assets/prehistoric_bones.otf', 30)
+    # High score surface
+    hs_surf = hs_font.render(f'High Score: {high_score}', False, 'Black')
+    hs_score_rect = hs_surf.get_rect(topleft=(10, 80))
+    screen.blit(hs_surf, hs_score_rect)
+
 def player_animation():
     global player, player_jump_index, player_run_index, player_gravity
 
@@ -126,12 +133,6 @@ exit_msg = exit_font.render('Thanks for playing!', False, 'Black')
 # Game over message
 game_over_msg = exit_font.render('Game Over', False, 'Black')
 
-# High score font
-hs_font = pygame.font.Font('assets/prehistoric_bones.otf', 30)
-
-# High score surface
-hs_surf = hs_font.render(f'High Score: {high_score}', False, 'Black')
-
 # Play buttons
 play_but = pygame.image.load('assets/buttons/PlayBtn.png')
 play_but = pygame.transform.scale(play_but, (100, 50))
@@ -236,7 +237,7 @@ stone_rect = stone_surf.get_rect()
 stone_mask = pygame.mask.from_surface(stone_surf)
 
 obstacle_list = []
-min_obstacle_distance = 235  # Adjust this value to control spacing
+min_obstacle_distance = 250  # Adjust this value to control spacing
 
 # Position the stone
 stone_rect.topleft = (700, 445)
@@ -276,7 +277,6 @@ while running:
     draw_scrolling_background()
     draw_scrolling_floor()
     screen.blit(game_name, (205, title_y_pos))
-    screen.blit(hs_surf, (10, 80))
 
     if game_active:
         # Move the stone
@@ -318,6 +318,12 @@ while running:
             screen.blit(player, player_rect)  # Draw the current frame of the death animation
             screen.blit(game_over_msg, (265, 200))  # Display the "Game Over" message
             display_score()
+            # Calculate the final score
+            final_score = (pygame.time.get_ticks() - start_time) / 1000
+    
+            # Update the high score if needed
+            if final_score > high_score:
+                high_score = final_score
 
             # Check if the animation has finished
             if int(player_dead_index) >= len(player_dead):
@@ -334,7 +340,6 @@ while running:
         screen.blit(background, (0, 0))
         screen.blit(floor, (0, 500))
         screen.blit(player, player_rect)
-        screen.blit(hs_surf, (10, 80))
 
         # Game title
         if title_y_pos < title_y_max:
