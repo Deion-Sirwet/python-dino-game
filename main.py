@@ -93,7 +93,7 @@ high_score = 0
 
 # Set up the game window
 screen = pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
-pygame.display.set_caption("My First Pygame Window")
+pygame.display.set_caption("Dino Dashin'")
 
 # Background image scaled
 background = pygame.image.load('assets/prehistoric_background.jpg').convert()
@@ -117,7 +117,7 @@ floor_scroll_speed = 8  # Floor scroll speed (faster to simulate closer perspect
 
 # Game font and game name
 game_font = pygame.font.Font('assets/prehistoric_bones.otf', 80)
-game_name = game_font.render('Dino Hop', False, 'Black')
+game_name = game_font.render('Dino Dashin\'', False, 'Black')
 
 # Exit message
 exit_font = pygame.font.Font('assets/prehistoric_bones.otf', 60)
@@ -128,6 +128,9 @@ game_over_msg = exit_font.render('Game Over', False, 'Black')
 
 # High score font
 hs_font = pygame.font.Font('assets/prehistoric_bones.otf', 30)
+
+# High score surface
+hs_surf = hs_font.render(f'High Score: {high_score}', False, 'Black')
 
 # Play buttons
 play_but = pygame.image.load('assets/buttons/PlayBtn.png')
@@ -233,7 +236,7 @@ stone_rect = stone_surf.get_rect()
 stone_mask = pygame.mask.from_surface(stone_surf)
 
 obstacle_list = []
-min_obstacle_distance = 200  # Adjust this value to control spacing
+min_obstacle_distance = 235  # Adjust this value to control spacing
 
 # Position the stone
 stone_rect.topleft = (700, 445)
@@ -252,9 +255,10 @@ while running:
             running = False
             pygame.quit()
         if game_active:
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and player_rect.y >= 385:
-                    player_gravity = -18
+            if not is_dead:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE and player_rect.y >= 385:
+                        player_gravity = -18
 
             # Obstacle logic
             if event.type == obstacle_timer:
@@ -271,7 +275,8 @@ while running:
     # Update the screen (background and floor)
     draw_scrolling_background()
     draw_scrolling_floor()
-    screen.blit(game_name, (265, title_y_pos))
+    screen.blit(game_name, (205, title_y_pos))
+    screen.blit(hs_surf, (10, 80))
 
     if game_active:
         # Move the stone
@@ -329,11 +334,12 @@ while running:
         screen.blit(background, (0, 0))
         screen.blit(floor, (0, 500))
         screen.blit(player, player_rect)
+        screen.blit(hs_surf, (10, 80))
 
         # Game title
         if title_y_pos < title_y_max:
             title_y_pos += 1.5
-        screen.blit(game_name, (265, title_y_pos))
+        screen.blit(game_name, (205, title_y_pos))
 
         screen.blit(play_but, play_rect)
         if play_rect.collidepoint(mouse_pos):  # Check if mouse is over play button
