@@ -8,10 +8,11 @@ pygame.init()
 def display_score():
     current_time = pygame.time.get_ticks() - start_time
     current_time /= 1000
-    score_surf = exit_font.render(f'{current_time:.2f}', False, 'Black')
+    score_surf = exit_font.render(f'{int(current_time)}', False, 'Black')
     score_rect = score_surf.get_rect(center = (400, 170))
     screen.blit(score_surf, score_rect)
 
+def display_high_score():
     # High score font
     hs_font = pygame.font.Font('assets/prehistoric_bones.otf', 30)
     # High score surface
@@ -302,6 +303,7 @@ while running:
 
             # Score
             display_score()
+            display_high_score()
 
             player_animation()
             screen.blit(player, player_rect)
@@ -318,8 +320,9 @@ while running:
             screen.blit(player, player_rect)  # Draw the current frame of the death animation
             screen.blit(game_over_msg, (265, 200))  # Display the "Game Over" message
             display_score()
+            display_high_score()
             # Calculate the final score
-            final_score = (pygame.time.get_ticks() - start_time) / 1000
+            final_score = int((pygame.time.get_ticks() - start_time) / 1000)
     
             # Update the high score if needed
             if final_score > high_score:
@@ -340,6 +343,7 @@ while running:
         screen.blit(background, (0, 0))
         screen.blit(floor, (0, 500))
         screen.blit(player, player_rect)
+        display_high_score()
 
         # Game title
         if title_y_pos < title_y_max:
