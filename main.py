@@ -1,6 +1,7 @@
 import pygame
 import settings
 import random
+import os
 
 pygame.init()
 
@@ -17,7 +18,7 @@ def display_high_score():
     hs_font = pygame.font.Font('assets/prehistoric_bones.otf', 30)
     # High score surface
     hs_surf = hs_font.render(f'High Score: {high_score}', False, 'Black')
-    hs_score_rect = hs_surf.get_rect(topleft=(10, 80))
+    hs_score_rect = hs_surf.get_rect(topleft=(120, 10))
     screen.blit(hs_surf, hs_score_rect)
 
 def player_animation():
@@ -92,12 +93,27 @@ def draw_scrolling_floor():
     screen.blit(floor, (floor_x1, settings.SCREEN_HEIGHT - 100))  # Adjust Y position to place it at the bottom
     screen.blit(floor, (floor_x2, settings.SCREEN_HEIGHT - 100))
 
+def read_high_score():
+    if os.path.exists(high_score_file):
+        with open(high_score_file, 'r') as file:
+            try:
+                return int(file.read())  # Read and return the high score as an integer
+            except ValueError:
+                return 0  # If the file is empty or contains invalid data, return 0
+    return 0  # Return 0 if the file doesn't exist
+
+def save_high_score(score):
+    with open(high_score_file, 'w') as file:
+        file.write(str(score))  # Save the high score as a string
+
+
 # Variables (static)
 clock = pygame.time.Clock()
 title_y_pos = -50
 title_y_max = 50
 start_time = 0
-high_score = 0
+high_score_file = "high_score.txt"
+high_score = read_high_score()
 
 # Set up the game window
 screen = pygame.display.set_mode((settings.SCREEN_WIDTH, settings.SCREEN_HEIGHT))
@@ -321,12 +337,14 @@ while running:
             screen.blit(game_over_msg, (265, 200))  # Display the "Game Over" message
             display_score()
             display_high_score()
-            # Calculate the final score
+           
+            # Set final score
             final_score = int((pygame.time.get_ticks() - start_time) / 1000)
-    
-            # Update the high score if needed
+
+            # Update high score if necessary
             if final_score > high_score:
                 high_score = final_score
+                save_high_score(high_score)  # Save the new high score
 
             # Check if the animation has finished
             if int(player_dead_index) >= len(player_dead):
